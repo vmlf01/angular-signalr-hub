@@ -83,10 +83,12 @@ A handy wrapper for SignalR Hubs. Just specify the hub name, listening functions
     			console.error(error);
     		},
 
+			// don't auto start the connection, we will do it later
 			autoStart: false
     		
     	});
 
+		// start the hub connection manually
 		hubPromise.then(function(hub) { return hub.connect(); })
 			.then(function(hub) { hubConnection = hub; });
     
