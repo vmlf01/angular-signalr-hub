@@ -21,77 +21,89 @@ A handy wrapper for SignalR Hubs. Just specify the hub name, listening functions
 2. add `SignalR` as a module dependency to your app
 3. Call new Hub with two parameters
 	
-			var hub = new Hub('hubname',options);
+			var appHub = null; 
+			new Hub('hubname',options)
+				.then(function(hub) { appHub = hub });
 
 ####Javascript
-  var hub = new Hub('AlertHub', {
-          listeners: {
-            //Client methods
-            'globalAlert': function (message) {
-              alert(message);
-              $rootScope.$apply();
-            }
-          },
-          methods: [],
-          rootPath: '/api',
-          queryParams: {
-            'token': a.getToken()
-          }
-        }
-      );
-
-
-
-
-```
-angular.module('app',['SignalR'])
-.factory('Employees',['$rootScope','Hub', function($rootScope, Hub){
-
-	//declaring the hub connection
-	var hub = new Hub('employee', {
-	
-		//client side methods
-		listeners:{
-			'lockEmployee': function (id) {
-				var employee = find(id);
-				employee.Locked = true;
-				$rootScope.$apply();
+```javascript
+    
+	var alertHub = null;
+	new Hub('AlertHub', {
+			listeners: {
+		    	//Client methods
+		    	'globalAlert': function (message) {
+		      		alert(message);
+		      		$rootScope.$apply();
+		    	}
 			},
-			'unlockEmployee': function (id) {
-				var employee = find(id);
-				employee.Locked = false;
-				$rootScope.$apply();
+		    methods: [],
+		    rootPath: '/api',
+		    queryParams: {
+		    	'token': a.getToken()
 			}
-		},
-		
-		//server side methods
-		methods: ['lock','unlock'],
-		
-		//query params sent on initial connection
-		queryParams:{
-			'token': 'exampletoken'
-		},
-
-		//handle connection error
-		errorHandler: function(error){
-			console.error(error);
 		}
-		
-	});
+    ).then(function(hub) { alertHub = hub; });
 
-	var edit = function (employee) {
-		hub.lock(employee.Id); //Calling a server method
-	};
-	var done = function (employee) {
-		hub.unlock(employee.Id); //Calling a server method
-	}
-
-	return {
-		editEmployee: edit,
-		doneWithEmployee: done
-	};
-}]);
 ```
+
+```javascript
+
+    angular.module('app',['SignalR'])
+    .factory('Employees',['$rootScope','Hub', function($rootScope, Hub){
+    
+    	//declaring the hub connection
+		var hubConnection = null;
+    	var hubPromise = new Hub('employee', {
+    	
+    		//client side methods
+    		listeners:{
+    			'lockEmployee': function (id) {
+    				var employee = find(id);
+    				employee.Locked = true;
+    				$rootScope.$apply();
+    			},
+    			'unlockEmployee': function (id) {
+    				var employee = find(id);
+    				employee.Locked = false;
+    				$rootScope.$apply();
+    			}
+    		},
+    		
+    		//server side methods
+    		methods: ['lock','unlock'],
+    		
+    		//query params sent on initial connection
+    		queryParams:{
+    			'token': 'exampletoken'
+    		},
+    
+    		//handle connection error
+    		errorHandler: function(error){
+    			console.error(error);
+    		},
+
+			autoStart: false
+    		
+    	});
+
+		hubPromise.then(function(hub) { return hub.connect(); })
+			.then(function(hub) { hubConnection = hub; });
+    
+    	var edit = function (employee) {
+    		hub.lock(employee.Id); //Calling a server method
+    	};
+    	var done = function (employee) {
+    		hub.unlock(employee.Id); //Calling a server method
+    	}
+    
+    	return {
+    		editEmployee: edit,
+    		doneWithEmployee: done
+    	};
+    }]);
+
+````
 ##Options
 
 * `listeners` client side callbacks
@@ -100,7 +112,8 @@ angular.module('app',['SignalR'])
 * `queryParams` object representing additional query params to be sent on connection
 * `errorHandler` function(error) to handle hub connection errors
 * `logging` enable/disable logging
-
+* `autoStart` a boolean indicating whether to start the base connection when creating the hub, defaults to *true*
+ 
 ##Demo
 
 [A simple demo using OData, Signalr, and Angular](https://github.com/JustMaier/signalrgrid)
