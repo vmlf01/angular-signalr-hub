@@ -29,6 +29,7 @@ angular.module('SignalR', [])
 
 	return function (hubName, options) {
 		var Hub = this;
+		var _options = options;
 
 		Hub.connection = getConnection(options);
 		Hub.proxy = Hub.connection.createHubProxy(hubName);
@@ -44,6 +45,28 @@ angular.module('SignalR', [])
 		};
 		Hub.connect = function () {
 			Hub.connection.start();
+		};
+		Hub.destroy = function() {
+			if (_options && _options.listeners) {
+				// unregister event listeners
+				angular.forEach(_options.listeners, function (fn, event) {
+					Hub.proxy.off(event, fn);
+				});
+			}
+
+			var hasActiveProxies = false;
+
+			// check if we have proxies associated with this connection
+			// that still have event listeners registered
+			angular.forEach(Hub.connection.proxies, function(proxy) {
+				hasActiveProxies = hasActiveProxies || proxy.hasSubscriptions();
+			});
+
+			if (!hasActiveProxies) {
+				// we don't have any proxy associated with this connection
+				// still active, so we can go ahead and close the connection
+				Hub.stop();
+			}
 		};
 
 		if (options && options.listeners) {
@@ -65,6 +88,12 @@ angular.module('SignalR', [])
 		}
 		if (options && options.errorHandler) {
 			Hub.connection.error(options.errorHandler);
+		}
+
+		if (options && options.scope) {
+			options.scope.on('$destroy', function() {
+				Hub.destroy();
+			});
 		}
 
 		//Adding additional property of promise allows to access it in rest of the application.
